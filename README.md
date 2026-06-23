@@ -1,5 +1,15 @@
 # 活動報到系統 / Event Check-in System
 
+### 🔗 線上互動 Demo / Live Demo
+
+**👉 https://teacher-pika.github.io/event-checkin-wall/demo/**
+
+點進去後按左上角「**一鍵報到全部（測試用）**」即可看到頭像動畫上牆，點任一頭像可看詳細資料。（純前端展示，範例資料，無真實個資）
+
+Open the page and click **"一鍵報到全部 (測試用)"** at the top-left to watch avatars animate onto the wall; click any avatar for details. (Front-end only, sample data, no real personal data.)
+
+[![Demo](https://github.com/teacher-pika/event-checkin-wall/actions/workflows/demo.yml/badge.svg)](https://github.com/teacher-pika/event-checkin-wall/actions/workflows/demo.yml)
+
 > 一個輕量、即時、易於部署的活動報到系統。
 > A lightweight, real-time, easy-to-deploy event check-in system.
 
