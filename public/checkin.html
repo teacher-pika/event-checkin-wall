@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報到系統 - 報到端</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #764ba2;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: 100%;
+            padding: 20px;
+            font-size: 2rem;
+            text-align: center;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            letter-spacing: 10px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 30px;
+            font-size: 1.2rem;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: white;
+        }
+
+        .error {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .connected {
+            background: #4caf50;
+        }
+
+        .disconnected {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .stats {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 15px;
+        }
+
+        .stats h3 {
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+        
+        #statsHeader {
+            cursor: pointer;
+        }
+        
+        #checkedInList {
+            display: none;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        #checkedInList ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        #checkedInList li {
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        #checkedInList li:last-child {
+            border-bottom: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
+        }
+
+        .add-guest-btn {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(132, 250, 176, 0.3);
+        }
+
+        .add-guest-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(132, 250, 176, 0.4);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+            box-shadow: 0 4px 15px rgba(252, 182, 159, 0.3);
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(252, 182, 159, 0.4);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-box h2 {
+            color: #764ba2;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-buttons .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-buttons .cancel-btn {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .modal-buttons button:hover {
+            transform: translateY(-2px);
+        }
+
+        /* ========================================
+           手機版響應式設計 (Mobile Responsive)
+           ======================================== */
+
+        /* 平板和小螢幕 (≤ 768px) */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 35px 25px;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            input {
+                padding: 18px;
+                font-size: 1.8rem;
+                letter-spacing: 8px;
+            }
+
+            button {
+                padding: 18px;
+                font-size: 1.3rem;
+            }
+
+            .message {
+                font-size: 1.1rem;
+                padding: 18px;
+            }
+
+            /* 管理功能按鈕 */
+            .management-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .management-buttons button {
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+        }
+
+        /* 手機直屏 (≤ 480px) */
+        @media screen and (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 30px 20px;
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 1.7rem;
+                margin-bottom: 8px;
+            }
+
+            .subtitle {
+                font-size: 0.95rem;
+                margin-bottom: 30px;
+            }
+
+            input {
+                padding: 15px;
+                font-size: 1.5rem;
+                letter-spacing: 6px;
+            }
+
+            button {
+                padding: 15px;
+                font-size: 1.2rem;
+            }
+
+            .message {
+                font-size: 1rem;
+                padding: 15px;
+            }
+
+            .status {
+                top: 10px;
+                right: 10px;
+                font-size: 0.85rem;
+                padding: 8px 15px;
+            }
+
+            /* 已報到列表 */
+            .checkedin-toggle {
+                font-size: 1rem;
+                padding: 12px;
+            }
+
+            .checkedin-list {
+                max-height: 200px;
+            }
+
+            .checkedin-item {
+                padding: 10px;
+                font-size: 0.95rem;
+            }
+
+            /* Modal 彈窗 */
+            .modal-content {
+                padding: 25px;
+                width: 95%;
+                max-width: 100%;
+            }
+
+            .modal-content h2 {
+                font-size: 1.4rem;
+            }
+
+            .form-group label {
+                font-size: 1rem;
+            }
+
+            .form-group input,
+            .form-group textarea {
+                font-size: 1rem;
+                padding: 10px;
+            }
+
+            .modal-buttons button {
+                font-size: 1rem;
+                padding: 12px;
+            }
+
+            .management-buttons button {
+                font-size: 1.1rem;
+                padding: 12px;
+            }
+        }
+
+        /* 超小螢幕 (≤ 360px) */
+        @media screen and (max-width: 360px) {
+            .container {
+                padding: 25px 15px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+            }
+
+            input {
+                padding: 12px;
+                font-size: 1.3rem;
+                letter-spacing: 5px;
+            }
+
+            button {
+                padding: 12px;
+                font-size: 1.1rem;
+            }
+
+            .status {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .modal-content h2 {
+                font-size: 1.2rem;
+            }
+
+            .management-buttons button {
+                font-size: 1rem;
+                padding: 10px;
+            }
+        }
+
+        /* 手機橫屏 (landscape) */
+        @media screen and (max-width: 768px) and (orientation: landscape) {
+            .container {
+                padding: 25px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+
+            .input-group {
+                margin-bottom: 20px;
+            }
+
+            input {
+                padding: 12px;
+                font-size: 1.3rem;
+            }
+
+            button {
+                padding: 12px;
+                font-size: 1.1rem;
+            }
+
+            .message {
+                padding: 12px;
+                font-size: 0.95rem;
+                margin-top: 15px;
+            }
+
+            .management-buttons {
+                flex-direction: row;
+            }
+
+            .management-buttons button {
+                font-size: 1rem;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="status">
+        <span class="status-dot disconnected" id="statusDot"></span>
+        <span id="statusText">未連線</span>
+    </div>
+
+    <div class="modal-overlay" id="addGuestModal">
+        <div class="modal-box">
+            <h2>➕ 現場增加貴賓</h2>
+            <form id="addGuestForm">
+                <div class="form-group">
+                    <label for="guestName">姓名 *</label>
+                    <input type="text" id="guestName" required placeholder="請輸入姓名">
+                </div>
+                <div class="form-group">
+                    <label for="guestIntro">簡介</label>
+                    <textarea id="guestIntro" placeholder="請輸入簡介"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="guestQuote">金句</label>
+                    <input type="text" id="guestQuote" placeholder="請輸入金句">
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-btn" onclick="closeAddGuestModal()">取消</button>
+                    <button type="submit" class="submit-btn">確認新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>📝 活動報到</h1>
+        <p class="subtitle">請輸入您的報到代碼</p>
+        
+        <div class="input-group">
+            <input type="text" 
+                   id="codeInput" 
+                   placeholder="輸入4位代碼" 
+                   maxlength="4"
+                   autocomplete="off">
+        </div>
+        
+        <button id="checkinBtn" onclick="doCheckIn()" disabled>
+            確認報到
+        </button>
+
+        <div class="action-buttons">
+            <button class="reset-btn" onclick="handleReset()">🔄 重置報到</button>
+            <button class="add-guest-btn" onclick="openAddGuestModal()">➕ 現場增加貴賓</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="search-btn" onclick="openSearch()">🔍 搜尋編號</button>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div id="statsHeader">
+                <h3 id="statsTitle">報到統計 ▼</h3>
+                <p>目前報到：<span id="checkedCount">0</span> / <span id="totalCount">0</span> 人</p>
+            </div>
+            <div id="checkedInList">
+                <!-- Checked-in users will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Socket.io 連線
+        const socket = io();
+        let isConnected = false;
+        let totalUsers = 0;
+        let checkedInUsers = [];
+        let allUsers = [];
+
+        // 連線事件
+        socket.on('connect', () => {
+            console.log('✅ 已連線到伺服器');
+            isConnected = true;
+            updateConnectionStatus(true);
+            document.getElementById('checkinBtn').disabled = false;
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ 與伺服器斷線');
+            isConnected = false;
+            updateConnectionStatus(false);
+            document.getElementById('checkinBtn').disabled = true;
+        });
+
+        // 接收初始狀態
+        socket.on('initial-state', (data) => {
+            allUsers = data.users;
+            totalUsers = data.users.length;
+            checkedInUsers = data.checkedInUsers;
+            updateStats();
+            renderCheckedInList();
+        });
+
+        // 接收報到成功
+        socket.on('checkin-success', (user) => {
+            showMessage(`歡迎 ${user.name}！\n報到成功`, 'success');
+            document.getElementById('codeInput').value = '';
+            // The count will be updated by 'user-checked-in' event
+        });
+
+        // 接收報到錯誤
+        socket.on('checkin-error', (error) => {
+            showMessage(error, 'error');
+            document.getElementById('codeInput').value = '';
+        });
+
+        // 接收其他人報到通知
+        socket.on('user-checked-in', (user) => {
+            // 更新統計
+            if (!checkedInUsers.find(u => u.id === user.id)) {
+                checkedInUsers.push(user);
+                checkedInUsers.sort((a, b) => a.id.localeCompare(b.id)); // Sort by ID (ascending)
+            }
+            updateStats();
+            renderCheckedInList();
+        });
+        
+        // 新增重置事件處理
+        socket.on('reset', () => {
+            checkedInUsers = [];
+            updateStats();
+            renderCheckedInList();
+            showMessage('報到資料已重置', 'success');
+        });
+
+        // 更新連線狀態
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            if (connected) {
+                dot.className = 'status-dot connected';
+                text.textContent = '已連線';
+            } else {
+                dot.className = 'status-dot disconnected';
+                text.textContent = '未連線';
+            }
+        }
+
+        // 更新統計
+        function updateStats() {
+            document.getElementById('stats').style.display = 'block';
+            document.getElementById('checkedCount').textContent = checkedInUsers.length;
+            document.getElementById('totalCount').textContent = totalUsers;
+        }
+
+        // 顯示訊息
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+            
+            // 3秒後自動隱藏
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 產生已報到列表
+        function renderCheckedInList() {
+            const listContainer = document.getElementById('checkedInList');
+            if (checkedInUsers.length === 0) {
+                listContainer.innerHTML = '<p>尚無報到者</p>';
+                return;
+            }
+            listContainer.innerHTML = '<ul>' +
+                checkedInUsers.map(u => {
+                    const intro = u.intro ? ` (${u.intro})` : '';
+                    return `<li><strong>${u.id}</strong> - ${u.name}${intro}</li>`;
+                }).join('') +
+                '</ul>';
+        }
+
+        // 執行報到
+        function doCheckIn() {
+            const code = document.getElementById('codeInput').value.trim();
+            
+            if (code.length !== 4) {
+                showMessage('請輸入4位數代碼', 'error');
+                return;
+            }
+            
+            if (!isConnected) {
+                showMessage('未連線到伺服器', 'error');
+                return;
+            }
+            
+            // 發送報到請求
+            socket.emit('checkin', code);
+        }
+
+        // Enter 鍵觸發報到
+        document.getElementById('codeInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                doCheckIn();
+            }
+        });
+
+        // 點擊統計區塊展開/收合列表
+        document.getElementById('statsHeader').addEventListener('click', () => {
+            const list = document.getElementById('checkedInList');
+            const title = document.getElementById('statsTitle');
+            if (list.style.display === 'none' || list.style.display === '') {
+                list.style.display = 'block';
+                title.textContent = '報到統計 ▲';
+            } else {
+                list.style.display = 'none';
+                title.textContent = '報到統計 ▼';
+            }
+        });
+
+        // 開啟新增貴賓彈窗
+        function openAddGuestModal() {
+            document.getElementById('addGuestModal').classList.add('active');
+            document.getElementById('guestName').focus();
+        }
+
+        // 關閉新增貴賓彈窗
+        function closeAddGuestModal() {
+            document.getElementById('addGuestModal').classList.remove('active');
+            document.getElementById('addGuestForm').reset();
+        }
+
+        // 搜尋編號功能
+        function openSearch() {
+            const searchTerm = prompt('🔍 請輸入貴賓編號或姓名：');
+
+            if (!searchTerm || searchTerm.trim() === '') {
+                return;
+            }
+
+            const term = searchTerm.trim().toLowerCase();
+
+            // 搜尋編號或姓名
+            const foundUser = allUsers.find(user =>
+                user.id.toLowerCase() === term ||
+                user.name.toLowerCase().includes(term) ||
+                user.id.toLowerCase().includes(term)
+            );
+
+            if (foundUser) {
+                // 顯示基本資訊
+                const intro = foundUser.intro || '（無職稱）';
+                alert(`📋 貴賓資訊\n\n姓名：${foundUser.name}\n職稱：${intro}\n編號：${foundUser.id}`);
+            } else {
+                alert(`❌ 找不到「${searchTerm}」\n\n請確認編號或姓名是否正確。`);
+            }
+        }
+
+        // 處理新增貴賓表單提交
+        document.getElementById('addGuestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('guestName').value.trim();
+            const intro = document.getElementById('guestIntro').value.trim();
+            const quote = document.getElementById('guestQuote').value.trim();
+
+            if (!name) {
+                showMessage('請輸入姓名', 'error');
+                return;
+            }
+
+            // 發送到後端 API
+            fetch('/api/add-guest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    intro: intro,
+                    quote: quote
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(`✅ 成功新增貴賓：${data.user.name} (${data.user.id})`, 'success');
+                    closeAddGuestModal();
+                    totalUsers++;
+                    updateStats();
+                } else {
+                    showMessage('新增失敗：' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('新增失敗：' + error.message, 'error');
+                console.error('Add guest error:', error);
+            });
+        });
+
+        // 點擊彈窗外部關閉
+        document.getElementById('addGuestModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddGuestModal();
+            }
+        });
+
+        // 處理重置報到
+        function handleReset() {
+            const password = prompt('⚠️ 請輸入管理員密碼以重置所有報到資料：');
+
+            if (password === null) {
+                // User cancelled
+                return;
+            }
+
+            if (password !== '9901') {
+                showMessage('密碼錯誤，無法重置', 'error');
+                return;
+            }
+
+            // Confirm again
+            const confirm = window.confirm('確定要重置所有報到資料嗎？此操作無法復原！');
+            if (!confirm) {
+                return;
+            }
+
+            // Call reset API
+            fetch('/api/reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage('✅ ' + data.message, 'success');
+                // The reset event will be received via socket.io
+            })
+            .catch(error => {
+                showMessage('重置失敗：' + error.message, 'error');
+                console.error('Reset error:', error);
+            });
+        }
+
+        // 自動聚焦輸入框
+        window.onload = () => {
+            document.getElementById('codeInput').focus();
+        };
+    </script>
+</body>
+</html>

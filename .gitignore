@@ -1,0 +1,58 @@
+# =========================================================
+#  相依套件 / Dependencies
+# =========================================================
+node_modules/
+
+# =========================================================
+#  私人文檔與封存個資 / Private docs & archived PII
+#  （內部說明文檔、所有真實個資皆集中於此，整個資料夾不上 git）
+#  (internal guides & all real personal data live here; never committed)
+# =========================================================
+doc/
+
+# =========================================================
+#  個資與即時資料 / Personal data & runtime state
+#  原始檔保留在本機可正常執行，但不上 git；git 只提供 *.sample
+#  (real files stay local so the app runs; git only ships *.sample)
+# =========================================================
+data.csv
+checkedin.json
+checkin_report_*.csv
+backup/
+new_data.txt
+data_update_log.txt
+
+# =========================================================
+#  日誌 / Logs
+# =========================================================
+*.log
+console_report.log
+update.log
+
+# =========================================================
+#  照片（真實個資）/ Photos (real personal data)
+#  僅保留示範用色塊樣張，其餘真實照片不上 git
+#  (only sample placeholder avatars are committed)
+# =========================================================
+/photo/*
+!/photo/.gitkeep
+!/photo/0901.jpg
+!/photo/0902.jpg
+!/photo/0903.jpg
+!/photo/big0901.jpg
+!/photo/big0902.jpg
+!/photo/big0903.jpg
+
+# =========================================================
+#  測試與專案無關檔案 / Tests & non-system scratch files
+# =========================================================
+test/
+svg.html
+nul
+
+# =========================================================
+#  作業系統 / OS files
+# =========================================================
+.DS_Store
+Thumbs.db
+desktop.ini

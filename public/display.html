@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報到系統 - 呈現端  (混合模式)</title>
+    <script src="/config.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .top-left-stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .portrait-warning {
+            display: none;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 24px 48px;
+            border-radius: 25px;
+            font-size: 2.7rem;
+            margin-top: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(245, 87, 108, 0.3);
+        }
+
+        .stats {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .stats h2 {
+            color: #764ba2;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        #debugInfo {
+            font-size: 1.2rem;
+            color: #667eea;
+            display: none;
+            border-left: 2px solid #e0e0e0;
+            padding-left: 20px;
+        }
+
+        .display-area {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 120px);
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .mayor-heart {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 180px;
+            height: 180px;
+            z-index: 100;
+            transition: all 0.5s ease;
+        }
+
+        .heart-outline {
+            width: 140px;
+            height: 140px;
+            position: relative;
+        }
+
+        .heart-outline svg {
+            filter: drop-shadow(0 2px 5px rgba(255, 255, 255, 0.3));
+        }
+
+        .heart-placeholder-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .mayor-heart:hover .heart-placeholder-text {
+            opacity: 1;
+        }
+
+        .mayor-heart.filled .heart-outline {
+            display: none;
+        }
+
+        .mayor-heart.filled .heart-placeholder-text {
+            display: none;
+        }
+
+        .mayor-heart-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+        }
+
+        .mayor-heart-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 140px;
+            height: 140px;
+            z-index: 1;
+        }
+
+        .mayor-heart-avatar-svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110px;
+            height: 110px;
+            z-index: 2;
+        }
+
+        .mayor-heart-avatar-svg image {
+            width: 100%;
+            height: 100%;
+        }
+
+        .mayor-heart .default-avatar-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110px;
+            height: 110px;
+            clip-path: path('M 55 97.94 L 48.30 92.81 C 24.75 70.41 9.17 56.28 9.17 39.02 C 9.17 24.88 20.25 13.75 34.38 13.75 C 42.35 13.75 50.01 17.46 55 23.58 C 59.99 17.46 67.65 13.75 75.63 13.75 C 89.75 13.75 100.83 24.88 100.83 39.02 C 100.83 56.28 85.25 70.41 61.70 92.81 L 55 97.94 Z');
+            z-index: 2;
+        }
+
+        .mayor-heart .default-avatar-container .default-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            box-shadow: none;
+        }
+
+        .mayor-heart.filled {
+            animation: mayor-checkin 1s ease-out;
+        }
+
+        @keyframes mayor-checkin {
+            0% {
+                transform: translateX(-50%) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: translateX(-50%) scale(1.2);
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .avatar {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .avatar.pop-in {
+             animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0) rotate(180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(90deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .avatar:hover {
+            transform: scale(1.2);
+            z-index: 100;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            object-fit: cover;
+        }
+
+        /* DESH 路徑上的頭像使用黃色邊框與淺粉紅色背景 */
+        .shape-avatar {
+            background-color: #B53471; /* 備用 淺粉紅色背景#FFB6C1 */
+            border-radius: 50%;
+        }
+
+        .shape-avatar .avatar-img {
+            border: 3px solid #FFD700;
+            width: 90%;
+            height: 90%;
+            position: relative;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .shape-avatar .default-avatar {
+            border: 3px solid #FFD700;
+            width: 90%;
+            height: 90%;
+            position: relative;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .avatar-name {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .avatar:hover .avatar-name {
+            opacity: 1;
+        }
+
+        .default-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .placeholder {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            transition: all 0.5s ease-in-out;
+            box-shadow: none;
+            border-radius: 50%;
+        }
+
+        .placeholder-id {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .placeholder:hover .placeholder-id {
+            display: block;
+        }
+        
+        .avatar.activated {
+            transform: scale(1.2) !important;
+            animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .profile {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .profile-details-left {
+            flex: 0 0 40%;
+            max-width: 400px;
+        }
+
+        .profile-details-right {
+            flex: 1 1 60%;
+            text-align: left;
+        }
+
+        .profile-img {
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .modal-profile-img {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            aspect-ratio: 400/600;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            border: 5px solid #667eea;
+        }
+
+        .profile h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            margin-top: 0;
+        }
+
+        .profile-info {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 1.4rem;
+        }
+
+        .profile-info p {
+            margin: 10px 0;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        #modalIntro {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .profile-quote {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-style: italic;
+            font-size: 1.5rem;
+            margin-top: 20px;
+        }
+
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .connected {
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .disconnected {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .welcome-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 30px 60px;
+            border-radius: 30px;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            z-index: 999;
+            animation: welcomePop 3s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes welcomePop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .top-right-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .search-btn {
+            padding: 10px 20px;
+            background: white;
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #764ba2;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+        }
+
+        .connection-status {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        /* ========================================
+           手機版響應式設計 (Mobile Responsive)
+           ======================================== */
+
+        /* 平板和小螢幕 (≤ 768px) */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            .stats {
+                padding: 8px 15px;
+                gap: 10px;
+            }
+
+            .stats h2 {
+                font-size: 1.2rem;
+            }
+
+            #debugInfo {
+                font-size: 1rem;
+            }
+
+            /* Modal 改為垂直佈局 */
+            .modal-content {
+                padding: 25px;
+                width: 95%;
+                max-height: 95vh;
+            }
+
+            .profile {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .profile-details-left {
+                flex: 1 1 100%;
+                max-width: 100%;
+            }
+
+            .profile-details-right {
+                flex: 1 1 100%;
+            }
+
+            .profile h2 {
+                font-size: 1.5rem;
+            }
+
+            .profile-info {
+                font-size: 1.1rem;
+                padding: 15px;
+            }
+
+            .profile-quote {
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+
+            .modal-profile-img {
+                max-width: 100%;
+            }
+
+            /* 搜尋按鈕與連線狀態 */
+            .top-right-controls {
+                flex-direction: column;
+                gap: 5px;
+                top: 10px;
+                right: 10px;
+            }
+
+            .search-btn {
+                font-size: 0.8rem;
+                padding: 8px 15px;
+            }
+
+            .connection-status {
+                font-size: 0.85rem;
+                padding: 8px 15px;
+            }
+
+            .top-left-stats {
+                top: 10px;
+                left: 10px;
+            }
+        }
+
+        /* 手機直屏 (≤ 480px) */
+        @media screen and (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+                margin-bottom: 5px;
+            }
+
+            .stats {
+                padding: 6px 12px;
+                gap: 8px;
+                font-size: 0.9rem;
+            }
+
+            .stats h2 {
+                font-size: 1rem;
+            }
+
+            .display-area {
+                height: calc(100vh - 90px);
+                border-radius: 20px;
+                overflow: auto; /* 允許捲動 */
+            }
+
+            .modal-content {
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+            .close-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 1.2rem;
+                top: 10px;
+                right: 10px;
+            }
+
+            .profile h2 {
+                font-size: 1.3rem;
+            }
+
+            .profile-info {
+                font-size: 1rem;
+                padding: 12px;
+            }
+
+            .profile-quote {
+                font-size: 1.1rem;
+                padding: 12px;
+            }
+
+            /* 預設大頭貼文字大小（直式全名） */
+            .modal-profile-img {
+                font-size: 2rem !important;
+            }
+
+            .search-btn {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+
+            .connection-status {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+        }
+
+        /* 手機橫屏 (landscape) */
+        @media screen and (max-width: 768px) and (orientation: landscape) {
+            .modal-content {
+                max-height: 98vh;
+                overflow-y: auto;
+            }
+
+            /* 橫屏時恢復水平佈局但縮小比例 */
+            .profile {
+                flex-direction: row;
+                gap: 15px;
+            }
+
+            .profile-details-left {
+                flex: 0 0 35%;
+                max-width: 300px;
+            }
+
+            .profile-details-right {
+                flex: 1 1 65%;
+            }
+
+            .profile h2 {
+                font-size: 1.3rem;
+                margin-bottom: 5px;
+            }
+
+            .profile-info {
+                font-size: 0.95rem;
+                padding: 12px;
+                margin: 10px 0;
+            }
+
+            .profile-quote {
+                font-size: 1rem;
+                padding: 12px;
+                margin-top: 10px;
+            }
+
+            .modal-profile-img {
+                margin-bottom: 10px;
+            }
+        }
+
+        /* 超小螢幕 (≤ 360px) */
+        @media screen and (max-width: 360px) {
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 5px;
+                padding: 8px;
+            }
+
+            .stats h2 {
+                font-size: 0.9rem;
+            }
+
+            #debugInfo {
+                border-left: none;
+                border-top: 1px solid #e0e0e0;
+                padding-left: 0;
+                padding-top: 5px;
+                font-size: 0.85rem;
+            }
+
+            .profile h2 {
+                font-size: 1.2rem;
+            }
+
+            .profile-info {
+                font-size: 0.95rem;
+                padding: 10px;
+            }
+
+            .profile-quote {
+                font-size: 1rem;
+                padding: 10px;
+            }
+        }
+
+        /* 文字超長處理（所有裝置） */
+        #modalIntro {
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        .profile h2 {
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* 手機直模式 (portrait) - 顯示橫式建議 */
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            .portrait-warning {
+                display: inline-block;
+            }
+
+            /* 確保在直模式下可以捲動 */
+            .display-area {
+                overflow: auto !important;
+                -webkit-overflow-scrolling: touch; /* iOS 平滑滾動 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-right-controls">
+        <button class="search-btn" onclick="openSearch()">🔍 搜尋貴賓</button>
+        <div class="connection-status">
+            <span class="status-dot disconnected" id="statusDot"></span>
+            <span id="statusText">未連線</span>
+        </div>
+    </div>
+
+    <div class="top-left-stats">
+        <div class="stats">
+            <h2>報到人數：<span id="checkedCount">0</span><span id="totalCountContainer"> / <span id="totalCount">0</span></span></h2>
+            <div id="debugInfo">
+                節點數：<span id="nodeCount">0</span>
+            </div>
+        </div>
+        <button id="testCheckinAllBtn" style="display: none; margin-top: 10px; padding: 8px 15px; border-radius: 10px; border: none; background-color: #fff; color: #764ba2; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">一鍵報到全部 (測試用)</button>
+    </div>
+
+    <div class="header">
+        <h1>🎉 DESH感恩茶會報到看板 </h1>
+        <div class="portrait-warning">📱 強烈建議切換成橫式畫面 🔄</div>
+    </div>
+
+    <div class="display-area" id="displayArea">
+        <!-- 市長專屬位置 -->
+        <div class="mayor-heart" id="mayorHeart">
+            <div class="heart-outline">
+                <svg viewBox="0 0 24 24" width="140" height="140">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                          fill="transparent"
+                          stroke="rgba(255, 255, 255, 0.5)"
+                          stroke-width="0.1"/>
+                </svg>
+            </div>
+            <div class="heart-placeholder-text">我們的市長</div>
+        </div>
+    </div>
+
+    <svg width="0" height="0" style="position:absolute; z-index:-1;" viewBox="0 0 1200 768">
+      <defs>
+        <path id="letter-D1" d="M 120 237 L 120 532" />
+        <path id="letter-D2" d="M 120 237 C 290 267, 290 502, 120 532" />
+        <path id="letter-E1" d="M 350 237 L 350 532" /><path id="letter-E2" d="M 350 237 L 530 237" /><path id="letter-E3" d="M 350 384 L 510 384" /><path id="letter-E4" d="M 350 532 L 530 532" />
+        <path id="letter-S" d="M 820 272 Q 820 237 728 237 Q 636 237 636 272 Q 636 315 676 333 L 779 380 Q 820 398 820 442 Q 820 472 820 497 Q 820 532 728 532 Q 636 532 636 497" />
+        <path id="letter-H1" d="M 950 237 L 950 532" /><path id="letter-H2" d="M 1100 237 L 1100 532" /><path id="letter-H3" d="M 950 384 L 1100 384" />
+
+        <!-- 愛心裁剪路徑 -->
+        <clipPath id="heartClip">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </clipPath>
+      </defs>
+    </svg>
+
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">✕</button>
+            <div class="profile">
+                <div class="profile-details-left"><div id="modalPhotoContainer"></div></div>
+                <div class="profile-details-right">
+                    <h2 id="modalName"></h2>
+                    <div class="profile-info">
+                        <p><strong>簡介:<br> <span id="modalIntro"></span></strong></p>
+                    </div>
+                    <div class="profile-quote" id="modalQuote"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let allUsers = [], checkedInUsers = [];
+        
+        // --- V4 Configuration ---
+        const TARGET_POINT_COUNT = 70;  // DESH shape always has 70 nodes
+        const FIXED_VIEWBOX_WIDTH = 1200;
+        const FIXED_VIEWBOX_HEIGHT = 768;
+        const AVATAR_SIZE = 60;
+        const ZOOM_FACTOR = 1.25;
+        // --- End V4 Configuration ---
+
+        let shapeCoordinates = [];
+        let shuffledIndices = [];
+        let nextActivationIndex = 0;
+        
+        // Smart position management system
+        let occupiedPositions = new Set(); // Store "x,y" strings for fast lookup
+        let availablePositions = []; // Pre-calculated available positions
+        let gridSize = 40; // Grid spacing for available positions (reduced for more capacity)
+
+        const colors = ['#4A90E2', '#E91E63', '#4CAF50', '#9C27B0', '#FF9800', '#795548', '#607D8B', '#F44336', '#3F51B5', '#00BCD4'];
+
+        socket.on('initial-state', (data) => {
+            allUsers = data.users;
+            checkedInUsers = data.checkedInUsers;
+            updateStats();
+            initializeFixedLayout();
+            // Restore state for already checked-in users
+            checkedInUsers.forEach(user => {
+                if (user.id === '0001') {
+                    fillMayorHeart(user, false);
+                } else {
+                    activateNextPlaceholder(user, false);
+                }
+            });
+            setupTestButton();
+        });
+
+        socket.on('user-checked-in', (user) => {
+            if (!checkedInUsers.find(u => u.id === user.id)) {
+                checkedInUsers.push(user);
+                updateStats();
+                showWelcome(user);
+                if (user.id === '0001') {
+                    setTimeout(() => fillMayorHeart(user, true), 500);
+                } else {
+                    setTimeout(() => activateNextPlaceholder(user, true), 500);
+                }
+            }
+        });
+
+        function setupTestButton() {
+            const testBtn = document.getElementById('testCheckinAllBtn');
+            if (testBtn) {
+                // 根據 config.js 設定控制按鈕顯示
+                if (window.APP_CONFIG && window.APP_CONFIG.showTestCheckinButton) {
+                    testBtn.style.display = 'block';
+                } else {
+                    testBtn.style.display = 'none';
+                }
+
+                testBtn.addEventListener('click', () => {
+                    const notCheckedInUsers = allUsers.filter(u => !checkedInUsers.find(cu => cu.id === u.id));
+                    
+                    // Process users sequentially to avoid race conditions
+                    processUsersSequentially(notCheckedInUsers, 0);
+                    
+                    testBtn.style.display = 'none'; // Hide after use
+                });
+            }
+        }
+
+        function processUsersSequentially(users, index) {
+            if (index >= users.length) return;
+            
+            const user = users[index];
+            if (!checkedInUsers.find(u => u.id === user.id)) {
+                checkedInUsers.push(user);
+                updateStats();
+                activateNextPlaceholder(user, true);
+            }
+            
+            // Process next user after a small delay for animation
+            setTimeout(() => {
+                processUsersSequentially(users, index + 1);
+            }, 20);
+        }
+
+        function initializeFixedLayout(isResize = false) {
+            // Always reset position tracking as coordinates change
+            occupiedPositions.clear();
+            availablePositions = [];
+
+            if (!isResize) {
+                shapeCoordinates = generateFixedCoordinates(TARGET_POINT_COUNT);
+                shuffledIndices = shuffleArray([...Array(shapeCoordinates.length).keys()]);
+                nextActivationIndex = 0;
+            }
+
+            const displayArea = document.getElementById('displayArea');
+
+            // 保存市長專屬位置
+            const mayorHeart = document.getElementById('mayorHeart');
+            const mayorHeartClone = mayorHeart ? mayorHeart.cloneNode(true) : null;
+
+            displayArea.innerHTML = '';
+
+            // 重新添加市長專屬位置
+            if (mayorHeartClone) {
+                displayArea.appendChild(mayorHeartClone);
+            }
+            
+            const areaWidth = displayArea.offsetWidth;
+            const areaHeight = displayArea.offsetHeight;
+
+            const scaleX = areaWidth / FIXED_VIEWBOX_WIDTH;
+            const scaleY = areaHeight / FIXED_VIEWBOX_HEIGHT;
+            
+            const baseScale = Math.min(scaleX, scaleY);
+            const positionScale = baseScale * ZOOM_FACTOR;
+
+            const scaledContentWidth = FIXED_VIEWBOX_WIDTH * positionScale;
+            const scaledContentHeight = FIXED_VIEWBOX_HEIGHT * positionScale;
+
+            const offsetX = (areaWidth - scaledContentWidth) / 2;
+            const offsetY = (areaHeight - scaledContentHeight) / 2;
+
+            // Create shape placeholders and record their positions
+            shapeCoordinates.forEach((pos, index) => {
+                const placeholder = document.createElement('div');
+                placeholder.id = `placeholder-${index}`;
+                placeholder.className = 'avatar placeholder';
+                
+                const scaledAvatarSize = AVATAR_SIZE * baseScale;
+
+                const finalX = pos.x * positionScale + offsetX;
+                const finalY = pos.y * positionScale + offsetY;
+                
+                placeholder.style.left = `${finalX}px`;
+                placeholder.style.top = `${finalY}px`;
+                placeholder.style.width = `${scaledAvatarSize}px`;
+                placeholder.style.height = `${scaledAvatarSize}px`;
+                
+                // Record shape position as occupied (reserve space for DESH shape)
+                occupiedPositions.add(`${Math.round(finalX)},${Math.round(finalY)}`);
+                
+                if (window.APP_CONFIG && window.APP_CONFIG.showHoverDebugNumber) {
+                    const placeholderIdSpan = document.createElement('span');
+                    placeholderIdSpan.className = 'placeholder-id';
+                    placeholderIdSpan.textContent = `${pos.name}${String(pos.nameIndex).padStart(2, '0')}`;
+                    placeholder.appendChild(placeholderIdSpan);
+                }
+
+                displayArea.appendChild(placeholder);
+            });
+            
+            // Pre-calculate available positions for random placement
+            generateAvailablePositions(areaWidth, areaHeight, baseScale);
+
+            // Re-populate all checked-in users on resize
+            if (isResize) {
+                nextActivationIndex = 0;
+                checkedInUsers.forEach(user => {
+                    if (user.id === '0001') {
+                        fillMayorHeart(user, false);
+                    } else {
+                        activateNextPlaceholder(user, false);
+                    }
+                });
+            }
+            
+            updateStats();
+        }
+
+        function fillMayorHeart(user, animate = true) {
+            const mayorHeart = document.getElementById('mayorHeart');
+            if (!mayorHeart) return;
+
+            // 清除可能已存在的容器（避免重複添加）
+            const existingContainer = mayorHeart.querySelector('.mayor-heart-container');
+            if (existingContainer) {
+                existingContainer.remove();
+            }
+
+            // 添加 filled 類別
+            mayorHeart.classList.add('filled');
+
+            // 創建愛心容器
+            const container = document.createElement('div');
+            container.className = 'mayor-heart-container';
+            if (animate) {
+                container.classList.add('activated');
+            }
+
+            // 創建粉紅愛心背景
+            const heartBg = document.createElement('svg');
+            heartBg.className = 'mayor-heart-bg';
+            heartBg.setAttribute('viewBox', '0 0 24 24');
+            heartBg.innerHTML = `
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                      fill="#ff69b4"
+                      filter="drop-shadow(0 4px 10px rgba(255, 105, 180, 0.4))"/>
+            `;
+
+            // 獲取縮放比例
+            let scale = 1;
+            const displayArea = document.getElementById('displayArea');
+            if (displayArea) {
+                scale = Math.min(displayArea.offsetWidth / 1200, displayArea.offsetHeight / 768);
+            }
+
+            container.appendChild(heartBg);
+
+            // 創建頭像元素（使用 SVG clipping 或 CSS clipping）
+            if (user.photo && user.photo.trim() !== '') {
+                // 使用 SVG 來裁剪圖片為愛心形狀
+                const avatarSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                avatarSvg.setAttribute('class', 'mayor-heart-avatar-svg');
+                avatarSvg.setAttribute('viewBox', '0 0 110 110');
+                avatarSvg.innerHTML = `
+                    <defs>
+                        <clipPath id="mayorHeartClip">
+                            <path d="M 55 97.94 L 48.30 92.81 C 24.75 70.41 9.17 56.28 9.17 39.02 C 9.17 24.88 20.25 13.75 34.38 13.75 C 42.35 13.75 50.01 17.46 55 23.58 C 59.99 17.46 67.65 13.75 75.63 13.75 C 89.75 13.75 100.83 24.88 100.83 39.02 C 100.83 56.28 85.25 70.41 61.70 92.81 L 55 97.94 Z"/>
+                        </clipPath>
+                    </defs>
+                    <image href="${user.photo}" x="0" y="0" width="110" height="110" clip-path="url(#mayorHeartClip)" preserveAspectRatio="xMidYMid slice"/>
+                `;
+
+                // 添加點擊事件
+                avatarSvg.style.cursor = 'pointer';
+                avatarSvg.onclick = () => showDetail(user);
+
+                container.appendChild(avatarSvg);
+            } else {
+                // 使用 CSS clip-path 來裁剪文字頭像
+                const defaultAvatarContainer = document.createElement('div');
+                defaultAvatarContainer.className = 'default-avatar-container';
+                defaultAvatarContainer.style.cursor = 'pointer';
+                defaultAvatarContainer.onclick = () => showDetail(user);
+
+                const defaultAvatar = document.createElement('div');
+                defaultAvatar.className = 'default-avatar';
+                defaultAvatar.style.background = getColorForUser(user);
+                defaultAvatar.style.fontSize = `${1.8 * scale}rem`;
+                defaultAvatar.textContent = user.name.charAt(0);
+
+                defaultAvatarContainer.appendChild(defaultAvatar);
+                container.appendChild(defaultAvatarContainer);
+            }
+
+            mayorHeart.appendChild(container);
+        }
+
+        function activateNextPlaceholder(user, animate = true) {
+            if (nextActivationIndex < shuffledIndices.length) {
+                // Shape Mode: Fill DESH shape first
+                const placeholderIndex = shuffledIndices[nextActivationIndex];
+                const placeholder = document.getElementById(`placeholder-${placeholderIndex}`);
+                if (placeholder) {
+                    populatePlaceholder(placeholder, user, animate);
+                }
+            } else {
+                // Random Mode: After shape is full, place randomly
+                addAvatarRandomly(user, animate);
+            }
+            nextActivationIndex++;
+        }
+
+        function addAvatarRandomly(user, animate = true) {
+            if (availablePositions.length === 0) {
+                console.warn('No available positions left for random placement!');
+                return;
+            }
+
+            const displayArea = document.getElementById('displayArea');
+            const newAvatar = createAvatarElement(user, animate);
+
+            // Get a random available position
+            const randomIndex = Math.floor(Math.random() * availablePositions.length);
+            const position = availablePositions[randomIndex];
+            
+            // Remove this position from available list
+            availablePositions.splice(randomIndex, 1);
+            
+            // Mark as occupied
+            occupiedPositions.add(`${position.x},${position.y}`);
+
+            newAvatar.style.left = `${position.x}px`;
+            newAvatar.style.top = `${position.y}px`;
+            
+            displayArea.appendChild(newAvatar);
+            
+            console.log(`Random user placed at (${position.x}, ${position.y}): ${user.name} - ${availablePositions.length} positions left`);
+        }
+
+        function createAvatarElement(user, animate) {
+            const displayArea = document.getElementById('displayArea');
+            const scale = Math.min(displayArea.offsetWidth / FIXED_VIEWBOX_WIDTH, displayArea.offsetHeight / FIXED_VIEWBOX_HEIGHT);
+            const scaledAvatarSize = AVATAR_SIZE * scale;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            if (animate) avatar.classList.add('pop-in');
+            
+            avatar.dataset.userId = user.id;
+            avatar.style.width = `${scaledAvatarSize}px`;
+            avatar.style.height = `${scaledAvatarSize}px`;
+            
+            populateAvatarContent(avatar, user);
+            avatar.onclick = () => showDetail(user);
+            return avatar;
+        }
+
+        
+        function populatePlaceholder(placeholder, user, animate) {
+            if (window.APP_CONFIG && window.APP_CONFIG.showHoverDebugNumber) {
+                const idSpan = placeholder.querySelector('.placeholder-id');
+                if (idSpan) idSpan.style.display = 'none';
+            }
+            placeholder.classList.remove('placeholder');
+            placeholder.classList.add('shape-avatar'); // 標記為 DESH 路徑上的頭像（黃色框）
+            if (animate) placeholder.classList.add('activated');
+
+            // Shape positions are already recorded during placeholder creation
+            populateAvatarContent(placeholder, user);
+            placeholder.onclick = () => showDetail(user);
+        }
+        
+        function generateAvailablePositions(areaWidth, areaHeight, baseScale) {
+            const scaledAvatarSize = AVATAR_SIZE * baseScale;
+            const padding = scaledAvatarSize / 2; // Reduced padding for more capacity
+            const randomOffset = gridSize * 0.4; // Max random offset (40% of grid size)
+            
+            // Generate grid of possible positions with random offsets
+            for (let x = padding; x < areaWidth - scaledAvatarSize; x += gridSize) {
+                for (let y = padding; y < areaHeight - scaledAvatarSize; y += gridSize) {
+                    // Add random offset to make positioning more natural
+                    const randomX = x + (Math.random() - 0.5) * randomOffset;
+                    const randomY = y + (Math.random() - 0.5) * randomOffset;
+                    
+                    // Ensure the randomized position is still within bounds
+                    const finalX = Math.max(padding, Math.min(randomX, areaWidth - scaledAvatarSize - padding));
+                    const finalY = Math.max(padding, Math.min(randomY, areaHeight - scaledAvatarSize - padding));
+                    
+                    // Check if this position conflicts with any shape positions
+                    let tooClose = false;
+                    for (const occupiedKey of occupiedPositions) {
+                        const [occupiedX, occupiedY] = occupiedKey.split(',').map(Number);
+                        const distance = Math.sqrt((finalX - occupiedX) ** 2 + (finalY - occupiedY) ** 2);
+                        
+                        if (distance < scaledAvatarSize * 1.1) { // Reduced safety margin for more capacity
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!tooClose) {
+                        availablePositions.push({ x: Math.round(finalX), y: Math.round(finalY) });
+                    }
+                }
+            }
+            
+            // Shuffle the available positions for more natural randomness
+            availablePositions = shuffleArray(availablePositions);
+            
+            console.log(`Generated ${availablePositions.length} available positions for random placement`);
+        }
+        
+        function populateAvatarContent(element, user) {
+            // Get scale from display area or use a safe fallback for random avatars
+            let scale = 1;
+            const displayArea = document.getElementById('displayArea');
+            if (displayArea) {
+                scale = Math.min(displayArea.offsetWidth / FIXED_VIEWBOX_WIDTH, displayArea.offsetHeight / FIXED_VIEWBOX_HEIGHT);
+            }
+            
+            if (user.photo && user.photo.trim() !== '') {
+                element.innerHTML = `
+                    <img class="avatar-img" src="${user.photo}" alt="${user.name}" onerror="this.style.display='none'; this.parentElement.querySelector('.default-avatar').style.display='flex';">
+                    <div class="default-avatar" style="display:none; background:${getColorForUser(user)}">${user.name.charAt(0)}</div>
+                    <div class="avatar-name" style="font-size: ${0.9 * scale}rem;">${user.name}</div>
+                `;
+            } else {
+                element.innerHTML = `
+                    <div class="default-avatar" style="background:${getColorForUser(user)}; font-size: ${2 * scale}rem;">${user.name.charAt(0)}</div>
+                    <div class="avatar-name" style="font-size: ${0.9 * scale}rem;">${user.name}</div>
+                `;
+            }
+        }
+        
+        function generateFixedCoordinates(targetCount) {
+            const pathObjects = [
+                { id: 'letter-D1', name: 'D' }, { id: 'letter-D2', name: 'D' },
+                { id: 'letter-E1', name: 'E' }, { id: 'letter-E2', name: 'E' }, { id: 'letter-E3', name: 'E' }, { id: 'letter-E4', name: 'E' },
+                { id: 'letter-S', name: 'S' },
+                { id: 'letter-H1', name: 'H' }, { id: 'letter-H2', name: 'H' }, { id: 'letter-H3', name: 'H' },
+            ];
+            const edgeMargin = 5;
+
+            // Step 1: Generate initial coordinates using total length method
+            const paths = pathObjects.map(obj => {
+                const path = document.getElementById(obj.id);
+                if (!path) return null;
+                const length = path.getTotalLength();
+                return {
+                    path: path,
+                    name: obj.name,
+                    originalLength: length,
+                    usableLength: Math.max(0, length - 2 * edgeMargin)
+                };
+            }).filter(p => p && p.usableLength > 0);
+
+            const totalUsableLength = paths.reduce((len, p) => len + p.usableLength, 0);
+            if (totalUsableLength === 0) return [];
+
+            const spacing = totalUsableLength / (targetCount + 2); // Generate a few extra points
+            const allCoordinates = [];
+            let nameCounters = {};
+
+            for (let i = 0; i < targetCount + 5; i++) {
+                const absoluteDistance = i * spacing;
+                let currentPath, distanceOnPath;
+                let tempCumulativeLength = 0;
+                
+                for (const p of paths) {
+                    if (absoluteDistance >= tempCumulativeLength && absoluteDistance <= tempCumulativeLength + p.usableLength + 0.1) {
+                        currentPath = p;
+                        distanceOnPath = absoluteDistance - tempCumulativeLength;
+                        break;
+                    }
+                    tempCumulativeLength += p.usableLength;
+                }
+
+                if (currentPath && currentPath.path) {
+                    if (!nameCounters[currentPath.name]) {
+                        nameCounters[currentPath.name] = 1;
+                    }
+                    const point = currentPath.path.getPointAtLength(distanceOnPath + edgeMargin);
+                    allCoordinates.push({
+                        x: point.x,
+                        y: point.y,
+                        name: currentPath.name,
+                        nameIndex: nameCounters[currentPath.name]++
+                    });
+                }
+            }
+
+            // Step 2: Process and adjust coordinates (from V3)
+            const filteredCoordinates = [];
+            
+            for (let i = 0; i < allCoordinates.length; i++) {
+                const coord = allCoordinates[i];
+                
+                // Skip problematic overlapping points
+                if ((coord.name === 'D' && coord.nameIndex === 8) ||
+                    (coord.name === 'E' && coord.nameIndex === 7) ||
+                    (coord.name === 'H' && coord.nameIndex === 18)) {
+                    continue;
+                }
+                
+                // Special adjustment for E16~E19 (E4 path points) - align with E08~E11 respectively
+                if (coord.name === 'E' && coord.nameIndex >= 16 && coord.nameIndex <= 19) {
+                    const targetIndex = coord.nameIndex - 8; // E16→E08, E17→E09, E18→E10, E19→E11
+                    const eReference = allCoordinates.find(c => c.name === 'E' && c.nameIndex === targetIndex);
+                    if (eReference) {
+                        coord.x = eReference.x; // Align X position with corresponding E middle line point
+                        coord.y = coord.y - 12; // Move up more
+                    }
+                }
+                
+                // Special adjustment for H15, H16, H17 - move right
+                if (coord.name === 'H' && coord.nameIndex >= 15 && coord.nameIndex <= 17) {
+                    coord.x = coord.x + 8; // Move right
+                }
+                
+                filteredCoordinates.push(coord);
+                
+                if (filteredCoordinates.length >= targetCount) break;
+            }
+
+            // Step 3: Add extra points to H1 path for symmetry
+            const h1Path = document.getElementById('letter-H1');
+            if (h1Path && filteredCoordinates.length < targetCount) {
+                const h1Length = h1Path.getTotalLength();
+                const h1UsableLength = Math.max(0, h1Length - 2 * edgeMargin);
+                const extraPointsNeeded = targetCount - filteredCoordinates.length;
+                
+                for (let i = 0; i < extraPointsNeeded; i++) {
+                    const ratio = (i + 1) / (extraPointsNeeded + 1);
+                    const point = h1Path.getPointAtLength(ratio * h1UsableLength + edgeMargin);
+                    filteredCoordinates.push({
+                        x: point.x,
+                        y: point.y,
+                        name: 'H',
+                        nameIndex: (nameCounters['H'] || 1) + i
+                    });
+                }
+            }
+
+            return filteredCoordinates.slice(0, targetCount);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Connection and stats management
+        socket.on('connect', () => {
+            updateConnectionStatus(true);
+        });
+
+        socket.on('disconnect', () => {
+            updateConnectionStatus(false);
+        });
+
+        socket.on('reset', () => {
+            checkedInUsers = [];
+            document.getElementById('displayArea').innerHTML = '';
+            updateStats();
+            initializeFixedLayout();
+        });
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = '已連線';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = '未連線';
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('checkedCount').textContent = checkedInUsers.length;
+
+            // Total count display logic from config
+            const totalCountContainer = document.getElementById('totalCountContainer');
+            if (window.APP_CONFIG && window.APP_CONFIG.showTotalCount) {
+                totalCountContainer.style.display = 'inline';
+                document.getElementById('totalCount').textContent = allUsers.length;
+            } else {
+                totalCountContainer.style.display = 'none';
+            }
+            
+            // Node count debug info logic from config
+            const debugInfo = document.getElementById('debugInfo');
+            if (window.APP_CONFIG && window.APP_CONFIG.showNodeCount) {
+                debugInfo.style.display = 'block';
+                document.getElementById('nodeCount').textContent = shapeCoordinates.length;
+            } else {
+                debugInfo.style.display = 'none';
+            }
+        }
+        
+        function showWelcome(user) {
+            const welcome = document.createElement('div');
+            welcome.className = 'welcome-animation';
+            const intro = user.intro ? `<br>${user.intro}` : '';
+            welcome.innerHTML = `歡迎 ${user.name}${intro}！`;
+            document.body.appendChild(welcome);
+            setTimeout(() => welcome.remove(), 3000);
+        }
+
+        function getColorForUser(user) {
+            return colors[parseInt(user.id.replace(/\D/g, "")) || 0 % colors.length];
+        }
+
+        function showDetail(user) {
+            const photoContainer = document.getElementById('modalPhotoContainer');
+            const bigPhotoSrc = user.bigPhoto && user.bigPhoto.trim() !== '' ? user.bigPhoto : '';
+
+            // 檢查是否有真正的大照片（不是小照片的備援）
+            const hasRealBigPhoto = bigPhotoSrc && bigPhotoSrc.includes('big');
+
+            if (hasRealBigPhoto) {
+                photoContainer.innerHTML = `<img class="profile-img modal-profile-img" src="${bigPhotoSrc.startsWith('http') ? bigPhotoSrc : bigPhotoSrc}" alt="${user.name}" onerror="this.outerHTML=createDefaultAvatarHTML(user);">`;
+            } else {
+                photoContainer.innerHTML = createDefaultAvatarHTML(user);
+            }
+
+            document.getElementById('modalName').textContent = user.name;
+            document.getElementById('modalIntro').textContent = user.intro || '無介紹';
+
+            // 處理 quote 中的 \n 換行符號
+            const quote = user.quote || '';
+            const quoteElement = document.getElementById('modalQuote');
+            if (quote.includes('\\n')) {
+                // 如果包含 \n，轉換為 <br> 並使用 innerHTML
+                quoteElement.innerHTML = quote.replace(/\\n/g, '<br>');
+            } else {
+                // 沒有 \n，直接使用 textContent
+                quoteElement.textContent = quote;
+            }
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function createDefaultAvatarHTML(user) {
+            // 使用玫紅色背景 (#B53471) 和直式全名顯示
+            const fullName = user.name;
+            return `<div class="profile-img modal-profile-img" style="background:#B53471; display:flex; align-items:center; justify-content:center; font-size:3rem; color:white; font-weight:bold; text-shadow: 0 4px 8px rgba(0,0,0,0.3); box-shadow: 0 8px 20px rgba(0,0,0,0.2); writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.2em; padding: 20px;">${fullName}</div>`;
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // Modal click outside to close
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 搜尋貴賓功能
+        function openSearch() {
+            const searchTerm = prompt('🔍 請輸入貴賓編號或姓名：');
+
+            if (!searchTerm || searchTerm.trim() === '') {
+                return;
+            }
+
+            const term = searchTerm.trim().toLowerCase();
+
+            // 搜尋編號或姓名
+            const foundUser = allUsers.find(user =>
+                user.id.toLowerCase() === term ||
+                user.name.toLowerCase().includes(term) ||
+                user.id.toLowerCase().includes(term)
+            );
+
+            if (foundUser) {
+                showDetail(foundUser);
+            } else {
+                alert(`❌ 找不到「${searchTerm}」\n\n請確認編號或姓名是否正確。`);
+            }
+        }
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            initializeFixedLayout(true);
+        });
+    </script>
+</body>
+</html>
