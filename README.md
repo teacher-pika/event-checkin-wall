@@ -15,6 +15,7 @@
 
 - [簡介](#簡介)
 - [主要功能](#主要功能)
+- [畫面截圖](#畫面截圖)
 - [系統組成](#系統組成)
 - [快速開始](#快速開始)
 - [參與者資料格式](#參與者資料格式)
@@ -41,6 +42,30 @@
 - **色塊頭像備援**：沒有照片時自動顯示色塊＋姓名，無須準備所有照片。
 - **每日報表**：自動產生每日報到 CSV 報表。
 - **簡易部署**：純 Node.js，無需資料庫。
+
+<a id="畫面截圖"></a>
+
+## 畫面截圖
+
+> 以下截圖皆使用 `data.sample.csv` 範例資料，未包含任何真實個資。
+
+### 報到端（手機）
+
+參與者輸入 4 位代碼即可報到，即時顯示成功訊息與報到統計。
+
+<img src="screenshot/checkin.png" alt="報到端畫面" width="280">
+
+### 呈現端：即時報到牆
+
+已報到者的頭像會即時出現在大螢幕上，沿著活動主題字樣排列（沒有照片者顯示色塊頭像）。
+
+![即時報到牆](screenshot/display-wall.png)
+
+### 呈現端：點開人物
+
+點擊任一頭像，會彈出該參與者的大照片、簡介與金句。
+
+![人物詳細資料](screenshot/display-modal.png)
 
 <a id="系統組成"></a>
 
@@ -189,6 +214,7 @@ id,name,code,intro,quote,photo,checkedIn
 
 - [Introduction](#introduction)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Participant Data Format](#participant-data-format)
@@ -215,6 +241,30 @@ A check-in system designed for small conferences, workshops, and courses. It off
 - **Color-block fallback** — missing photos render as a colored block + name, so you don't need every photo.
 - **Daily reports** — a daily check-in CSV report is generated automatically.
 - **Simple deployment** — pure Node.js, no database.
+
+<a id="screenshots"></a>
+
+## Screenshots
+
+> All screenshots use the sample data in `data.sample.csv` — no real personal data is shown.
+
+### Check-in page (mobile)
+
+Participants enter a 4-digit code to check in; a success message and live stats appear instantly.
+
+<img src="screenshot/checkin.png" alt="Check-in page" width="280">
+
+### Display: live check-in wall
+
+Checked-in avatars pop onto the big screen in real time, arranged along the event's title lettering (people without a photo get a color-block avatar).
+
+![Live check-in wall](screenshot/display-wall.png)
+
+### Display: person detail
+
+Click any avatar to open that participant's large photo, bio, and quote.
+
+![Person detail modal](screenshot/display-modal.png)
 
 <a id="project-structure"></a>
 
