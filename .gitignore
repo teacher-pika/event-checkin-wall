@@ -4,6 +4,12 @@
 node_modules/
 
 # =========================================================
+#  Python 快取 / Python cache
+# =========================================================
+__pycache__/
+*.pyc
+
+# =========================================================
 #  私人文檔與封存個資 / Private docs & archived PII
 #  （內部說明文檔、所有真實個資皆集中於此，整個資料夾不上 git）
 #  (internal guides & all real personal data live here; never committed)

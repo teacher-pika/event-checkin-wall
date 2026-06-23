@@ -11,12 +11,13 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-# 設定路徑
+# 設定路徑（腳本位於 tool/，資料檔在專案根目錄）
 SCRIPT_DIR = Path(__file__).parent
-DATA_CSV = SCRIPT_DIR / "data.csv"
-NEW_DATA_FILE = SCRIPT_DIR / "new_data.txt"
-LOG_FILE = SCRIPT_DIR / "data_update_log.txt"
-BACKUP_DIR = SCRIPT_DIR / "backup"
+ROOT_DIR = SCRIPT_DIR.parent
+DATA_CSV = ROOT_DIR / "data.csv"
+NEW_DATA_FILE = ROOT_DIR / "new_data.txt"
+LOG_FILE = ROOT_DIR / "data_update_log.txt"
+BACKUP_DIR = ROOT_DIR / "backup"
 
 def get_max_id_with_prefix(existing_ids, prefix):
     """取得特定前綴的最大編號"""

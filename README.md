@@ -22,6 +22,7 @@
 - [設定檔](#設定檔)
 - [個資與隱私](#個資與隱私)
 - [技術棧](#技術棧)
+- [授權](#授權)
 
 <a id="簡介"></a>
 
@@ -53,7 +54,7 @@
 | `config.js` | 前端顯示與測試相關設定 |
 | `data.csv` | 參與者名單（**真實資料不上 git**，請參考 `data.sample.csv`） |
 | `photo/` | 參與者照片資料夾（**真實照片不上 git**，僅含示範色塊樣張） |
-| `0update_data.py` | 批次合併新名單到 `data.csv` 的工具 |
+| `tool/update_data.py` | 批次合併新名單到 `data.csv` 的工具（見 `tool/README.md`） |
 
 > 📌 真實名單、照片、報到紀錄等個資皆**不會上傳到 git**，詳見 [個資與隱私](#個資與隱私)。
 
@@ -172,6 +173,12 @@ id,name,code,intro,quote,photo,checkedIn
 - **前端**：Vanilla JavaScript、HTML5、CSS3
 - **資料處理**：csv-parser
 
+<a id="授權"></a>
+
+## 授權
+
+本專案採用 **MIT** 授權，詳見 [LICENSE](LICENSE)。
+
 ---
 
 <a id="english"></a>
@@ -189,6 +196,7 @@ id,name,code,intro,quote,photo,checkedIn
 - [Configuration](#configuration)
 - [Privacy & Personal Data](#privacy--personal-data)
 - [Tech Stack](#tech-stack)
+- [License](#license)
 
 <a id="introduction"></a>
 
@@ -220,7 +228,7 @@ A check-in system designed for small conferences, workshops, and courses. It off
 | `config.js` | Front-end display & testing settings |
 | `data.csv` | Participant list (**real data is git-ignored**; see `data.sample.csv`) |
 | `photo/` | Participant photos (**real photos are git-ignored**; sample blocks only) |
-| `0update_data.py` | Tool to merge new entries into `data.csv` |
+| `tool/update_data.py` | Tool to merge new entries into `data.csv` (see `tool/README.md`) |
 
 > 📌 Real lists, photos, and check-in records are **never committed to git** — see [Privacy & Personal Data](#privacy--personal-data).
 
@@ -338,3 +346,9 @@ This project is set up so it can be published to git without leaking personal da
 - **Real-time**: Socket.io
 - **Frontend**: Vanilla JavaScript, HTML5, CSS3
 - **Data**: csv-parser
+
+<a id="license"></a>
+
+## License
+
+Released under the **MIT** License — see [LICENSE](LICENSE).
