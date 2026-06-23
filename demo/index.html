@@ -55,6 +55,36 @@
             });
             return socket;
         };
+
+        // 額外：模擬約 200 人壓力測試按鈕（純前端生成「測試員」並動畫報到，
+        // 展示大量報到時的自動排版；對應原系統 config 的 useMockUserCount）
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const ref = document.getElementById('testCheckinAllBtn');
+                if (!ref) return;
+                const btn = document.createElement('button');
+                btn.id = 'stressTestBtn';
+                btn.textContent = '🚀 模擬 200 人壓力測試';
+                btn.style.cssText = ref.style.cssText;
+                btn.style.display = 'block';
+                btn.style.marginTop = '8px';
+                btn.style.backgroundColor = '#764ba2';
+                btn.style.color = '#fff';
+                btn.addEventListener('click', () => {
+                    const TARGET = 200;
+                    for (let i = allUsers.length; i < TARGET; i++) {
+                        const id = 'T' + (8000 + i);
+                        allUsers.push({ id, name: '測試員' + (i + 1), code: id, intro: '壓力測試模擬帳號', quote: '改變世界，從測試開始。', photo: '', bigPhoto: '', checkedIn: false });
+                    }
+                    const notIn = allUsers.filter(u => !checkedInUsers.find(c => c.id === u.id));
+                    processUsersSequentially(notIn, 0);
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.textContent = '✅ 已模擬 200 人';
+                });
+                ref.parentNode.insertBefore(btn, ref.nextSibling);
+            }, 400);
+        });
     </script>
     <style>
         * {

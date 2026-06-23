@@ -4,9 +4,9 @@
 
 **👉 https://teacher-pika.github.io/event-checkin-wall/demo/**
 
-點進去後按左上角「**一鍵報到全部（測試用）**」即可看到頭像動畫上牆，點任一頭像可看詳細資料。（純前端展示，範例資料，無真實個資）
+點進去後按左上角「**一鍵報到全部（測試用）**」看頭像動畫上牆、或按「**🚀 模擬 200 人壓力測試**」看大量報到的自動排版，點任一頭像可看詳細資料。（純前端展示，範例資料，無真實個資）
 
-Open the page and click **"一鍵報到全部 (測試用)"** at the top-left to watch avatars animate onto the wall; click any avatar for details. (Front-end only, sample data, no real personal data.)
+Open the page and click **"一鍵報到全部 (測試用)"** to watch avatars animate onto the wall, or **"🚀 模擬 200 人壓力測試"** to see the layout fill with ~200 people; click any avatar for details. (Front-end only, sample data, no real personal data.)
 
 [![Demo](https://github.com/teacher-pika/event-checkin-wall/actions/workflows/demo.yml/badge.svg)](https://github.com/teacher-pika/event-checkin-wall/actions/workflows/demo.yml)
 
