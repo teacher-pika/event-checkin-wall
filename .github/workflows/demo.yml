@@ -1,0 +1,67 @@
+name: Demo
+
+# 用 sample 資料把系統實際跑起來（含「一鍵報到全部」測試），並產生 demo 截圖。
+# Build & run the system on sample data (incl. the one-click test check-in), then upload demo screenshots.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax check server.js
+        run: node --check server.js
+
+      - name: Prepare sample data & enable test button (no real personal data)
+        run: |
+          cp data.sample.csv data.csv
+          sed -i 's/showTestCheckinButton: 0/showTestCheckinButton: 1/' config.js
+
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      # 注意：背景程序不會跨 step 存活，因此「啟動 server」與「跑 demo」必須在同一 step。
+      - name: Launch server & run demo (one-click test check-in + screenshots)
+        env:
+          OUT: demo-artifacts
+        run: |
+          node server.js > server.log 2>&1 &
+          SERVER_PID=$!
+          up=0
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:3000/api/status -o status.json; then
+              echo "Server is up:"; cat status.json; echo; up=1; break
+            fi
+            sleep 1
+          done
+          if [ "$up" -ne 1 ]; then echo "::error::server did not start"; cat server.log; exit 1; fi
+          node .github/scripts/demo-shots.js
+          RC=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $RC
+
+      - name: Upload demo screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-screenshots
+          path: demo-artifacts/
+          if-no-files-found: error
